@@ -101,9 +101,6 @@ public class CrptApi {
                             semaphore.release();
                         }
                     }, i, timeUnit);
-                    if (i == requestLimit - 1) {
-                        System.out.println("Лимит запросов достигнут. Повторите попытку позже.");
-                    }
                 }
                 scheduler.shutdown();
             } else {
