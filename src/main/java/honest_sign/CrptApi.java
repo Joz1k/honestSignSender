@@ -78,12 +78,13 @@ public class CrptApi {
 
     public void createDocument(Document document, String sign, int requestLimit, TimeUnit timeUnit) {
         try {
-            if (semaphore.tryAcquire(requestLimit, 5, TimeUnit.SECONDS)) {
-                ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+            ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(requestLimit);
+
                 for (int i = 0; i < requestLimit; i++) {
                     scheduler.schedule(() -> {
                         try {
-                            String jsonDoc = gson.toJson(document);
+                            if (semaphore.tryAcquire()) {
+                                String jsonDoc = gson.toJson(document);
                             HttpRequest request = HttpRequest.newBuilder()
                                     .uri(URI.create(API_URI))
                                     .header("Content-Type", "application/json")
@@ -95,6 +96,9 @@ public class CrptApi {
                             if (statusCode >= 200 && statusCode < 300) {
                                 System.out.println("Запрос успешно отправлен.");
                             }
+                        } else {
+                                System.out.println("Недоступно");
+                            }
                         } catch (InterruptedException | ExecutionException e) {
                             e.printStackTrace();
                         } finally {
@@ -103,13 +107,9 @@ public class CrptApi {
                     }, i, timeUnit);
                 }
                 scheduler.shutdown();
-            } else {
-                System.out.println("Недоступно");
-            }
-        } catch (InterruptedException e) {
+
+        } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            semaphore.release();
         }
     }
 
